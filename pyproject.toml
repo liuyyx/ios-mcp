@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ios-mcp"
+version = "0.1.0"
+description = "MCP server for controlling an iPhone (iOS 17+, USB) via pymobiledevice3"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "ios-mcp contributors" }]
+keywords = ["mcp", "ios", "iphone", "pymobiledevice3", "automation"]
+dependencies = [
+    "mcp==1.26.0",
+    "pymobiledevice3==11.57.0",
+    "Pillow==12.2.0",
+]
+
+[project.scripts]
+ios-mcp = "ios_mcp.server:main"
+
+[tool.setuptools]
+packages = ["ios_mcp"]
+
+[tool.setuptools.package-data]
+ios_mcp = ["py.typed"]
