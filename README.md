@@ -4,6 +4,8 @@
 [pymobiledevice3](https://github.com/doronz88/pymobiledevice3) 实现。支持
 **iOS 17+**，可以给 Claude Desktop、Cursor 或任何 MCP 客户端使用。
 
+完整调用流程、参数和返回结构见 [MCP 操作文档](MCP_OPERATIONS.md)。
+
 ## 功能
 
 | MCP 工具 | 参数 | 返回 |
