@@ -9,12 +9,19 @@
 | MCP 工具 | 参数 | 返回 |
 |---|---|---|
 | `ios_list_devices` | — | JSON 数组：`udid` / `name` / `ios_version` / `connected` |
-| `ios_screenshot` | `udid: str = ""` | base64 PNG（物理像素，无 `data:` 前缀） |
-| `ios_tap` | `x: int, y: int, udid: str = ""` | 成功/失败 |
-| `ios_swipe` | `x1, y1, x2, y2: int, duration_ms: int = 300, udid: str = ""` | 成功/失败 |
-| `ios_scroll` | `direction: str, amount: int = 1, udid: str = ""` | 成功/失败 |
-| `ios_input_text` | `text: str, udid: str = ""` | 成功/失败 |
-| `ios_press_key` | `key: str, udid: str = ""` | 成功/失败（home / volume_up / volume_down / lock / siri） |
+| `ios_screenshot` | `udid: str = "", image_format: str = "png"` | 尺寸说明 + PNG/JPEG 图片（物理像素） |
+| `ios_screenshot_base64` | `udid: str = ""` | 纯 base64 PNG（物理像素，无 `data:` 前缀） |
+| `ios_tap` | `x: int, y: int, udid: str = "", settle_ms: int = 600` | 成功/失败；成功时附操作后 JPEG 截图 |
+| `ios_swipe` | `x1, y1, x2, y2: int, duration_ms: int = 300, udid: str = "", settle_ms: int = 600` | 成功/失败；成功时附操作后 JPEG 截图 |
+| `ios_scroll` | `direction: str, amount: int = 1, udid: str = "", settle_ms: int = 600` | 成功/失败；成功时附操作后 JPEG 截图 |
+| `ios_input_text` | `text: str, udid: str = "", settle_ms: int = 600` | 成功/失败；成功时附操作后 JPEG 截图 |
+| `ios_press_key` | `key: str, udid: str = "", settle_ms: int = 600` | 成功/失败；成功时附操作后 JPEG 截图（home / volume_up / volume_down / lock / siri） |
+| `ios_ocr` | `udid: str = ""` | 当前屏幕全部 OCR 文本及位置 |
+| `ios_find_text` | `text: str, udid: str = "", exact: bool = False` | 文本匹配项、像素框和逻辑点坐标 |
+| `ios_tap_text` | `text: str, udid: str = "", exact: bool = False, index: int = 0, offset_y: int = 0, settle_ms: int = 600` | 点击文本后返回成功消息和 JPEG 截图 |
+| `ios_find_image` | `template_base64: str, udid: str = "", threshold: float = 0.8` | 模板匹配项、像素框和逻辑点坐标 |
+| `ios_tap_image` | `template_base64: str, udid: str = "", threshold: float = 0.8, index: int = 0, settle_ms: int = 600` | 点击模板匹配位置后返回成功消息和 JPEG 截图 |
+| `ios_describe` | `udid: str = "", max_texts: int = 80` | 同一张 PNG 截图及其 OCR JSON |
 | `ios_screen_size` | `udid: str = ""` | `{"width": 393, "height": 852}`（逻辑点） |
 
 所有 `udid` 参数都可以留空，此时使用第一台 USB 设备；也可以用环境变量
@@ -168,7 +175,7 @@ python -m ios_mcp.server --transport streamable-http --host 127.0.0.1 --port 800
 }
 ```
 
-然后在 Cursor 的 MCP 设置中确认 `ios-control` 已连接（工具列表里应出现 8 个
+然后在 Cursor 的 MCP 设置中确认 `ios-control` 已连接（工具列表里应出现 15 个
 `ios_*` 工具）。
 
 ---
@@ -187,6 +194,35 @@ python -m ios_mcp.server --transport streamable-http --host 127.0.0.1 --port 800
 - `up`：手指从下往上滑（内容向上滚动，看后面的内容）；
 - `down`：手指从上往下滑；
 - `left` / `right`：同理。
+
+---
+
+## 视觉定位
+
+OCR 与模板定位结果同时包含 `pixel_box`（物理像素框）和 `point`（逻辑点中心坐标），其中 `point` 可直接传给点击工具，不需要自行按缩放倍率换算。
+
+### OCR 文本定位
+
+- `ios_describe()`：只截一次图，同时返回该图和 OCR JSON，适合先理解整个界面。
+- `ios_ocr()`：只返回当前屏幕识别到的全部文本及位置。
+- `ios_find_text("设置")`：按大小写不敏感的子串查找；传 `exact=True` 可要求完整匹配。
+- `ios_tap_text("设置")`：直接点击第一个匹配文本的中心；多个匹配时用 `index` 选择。
+- 主屏 app 名称位于图标下方，使用 `ios_tap_text("设置", offset_y=-48)` 可点击名称上方的图标本体。不同机型和布局可能需要调整这个逻辑点偏移。
+
+### 图像模板定位
+
+无文字的图标或图片按钮可提供模板小图的 base64（PNG/JPEG，可带 `data:` 前缀）：
+
+1. `ios_find_image(template_base64, threshold=0.8)` 检查匹配分数和位置；
+2. `ios_tap_image(template_base64, threshold=0.8, index=0)` 点击匹配区域中心。
+
+模板应取自相同设备、分辨率和显示缩放下的界面；缩放、旋转或主题变化会降低匹配分数。
+
+### 截图与操作反馈
+
+- `ios_screenshot(image_format="png")` 返回无损 PNG；传 `image_format="jpeg"` 可减小传输体积。
+- `ios_screenshot_base64()` 保留旧的纯 base64 PNG 接口，便于调用方自行保存或处理原始数据。
+- 点击、滑动、滚动、输入和按键成功后默认等待 600ms，再返回 JPEG q=85 反馈图；`settle_ms=0` 表示立即截图。操作成功但截图失败时仍返回操作成功消息，并附上截图失败原因。
 
 ---
 
@@ -277,6 +313,8 @@ pymobiledevice3 usbmux list
 - 屏幕旋转后的坐标换算未做动态适配。
 - 非 ASCII 文本依赖剪贴板和 `Cmd+V`，会覆盖剪贴板。
 - HID 的媒体流鉴权路径需要在真机上验证；失败时会抛出带原因的错误。
+- OCR 对极小字号、低对比度、艺术字体或被遮挡的文字可能漏检或误识别。
+- 模板匹配对缩放与旋转敏感；界面分辨率、显示缩放或主题变化后应重新截取模板。
 
 ## 安全提示
 

@@ -15,6 +15,7 @@ dependencies = [
     "mcp==1.26.0",
     "pymobiledevice3==11.57.0",
     "Pillow==12.2.0",
+    "rapidocr-onnxruntime==1.4.4",
 ]
 
 [project.scripts]
