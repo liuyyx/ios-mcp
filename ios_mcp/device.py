@@ -316,7 +316,9 @@ class TunnelManager:
         except Exception as exc:  # noqa: BLE001
             with contextlib.suppress(Exception):
                 await tunnel.aclose()
-            raise friendly_error(exc) from exc        logger.info("用户态 tunnel 已建立: %s", target)
+            raise friendly_error(exc) from exc
+
+        logger.info("用户态 tunnel 已建立: %s", target)
         return _TunnelState(udid=target, rsd=rsd, tunnel=tunnel, kind="userspace")
 
     async def close(self) -> None:
